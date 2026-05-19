@@ -41,8 +41,8 @@ async def run_sync():
         logger.info("Loading cogs before synchronization...")
         await load_cogs()
         await bot.start(token)
-    if bot.sync_error is not None:
-        raise RuntimeError(f"Command synchronization failed: {bot.sync_error}") from bot.sync_error
+        if bot.sync_error is not None:
+            raise RuntimeError(f"Command synchronization failed: {bot.sync_error}") from bot.sync_error
 
 
 if __name__ == "__main__":
