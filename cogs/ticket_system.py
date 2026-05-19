@@ -106,6 +106,7 @@ class ConfirmCloseView(View):
             await interaction.response.send_message("Nie masz uprawnień do potwierdzenia zamknięcia tego ticketu.", ephemeral=True)
             return
 
+        await interaction.response.defer(ephemeral=True)
         try:
             ticket_data = get_ticket(interaction.channel.id)
             if ticket_data:
@@ -123,7 +124,7 @@ class ConfirmCloseView(View):
         except Exception as e:
             err_log = Logs(category=Channels.LOGS_TECHNICAL, message=f"Error while deleting ticket channel ({interaction.channel.id}): {e}", color=LogsColor.RED)
             await err_log.send_log(interaction.client)
-            await interaction.response.send_message("Wystąpił błąd przy usuwaniu tego kanału.", ephemeral=True)
+            await interaction.followup.send("Wystąpił błąd przy usuwaniu tego kanału.", ephemeral=True)
 
 
 class CloseReasonModal(Modal, title="Zamknij ticket"):
@@ -314,6 +315,7 @@ class TicketSelect(Select):
             await interaction.response.defer()
             return
 
+        await interaction.response.defer(ephemeral=True)
         selected_value = self.values[0]
         member = interaction.user
 
@@ -324,7 +326,7 @@ class TicketSelect(Select):
                 color=LogsColor.YELLOW,
             )
             await log.send_log(interaction.client)
-            await interaction.response.send_message("Masz już ponad 5 otwartych ticketów! Zamknij poprzednie, aby móc otworzyć nowy.", ephemeral=True)
+            await interaction.followup.send("Masz już ponad 5 otwartych ticketów! Zamknij poprzednie, aby móc otworzyć nowy.", ephemeral=True)
             return
 
         ticket = Ticket(
@@ -336,9 +338,9 @@ class TicketSelect(Select):
         ticket_channel = await ticket.create_ticket(interaction)
 
         if ticket_channel:
-            await interaction.response.send_message(f"Twój ticket w kategorii {selected_value} został utworzony: {ticket_channel.mention}", ephemeral=True)
+            await interaction.followup.send(f"Twój ticket w kategorii {selected_value} został utworzony: {ticket_channel.mention}", ephemeral=True)
         else:
-            await interaction.response.send_message("Nie udało się utworzyć ticketu. Brak dostępu do serwera.", ephemeral=True)
+            await interaction.followup.send("Nie udało się utworzyć ticketu. Brak dostępu do serwera.", ephemeral=True)
 
 
 class TicketPersistentView(View):

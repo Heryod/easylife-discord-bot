@@ -45,9 +45,10 @@ class RoleSelect(Select):
             await interaction.response.defer()
             return
 
+        await interaction.response.defer(ephemeral=True)
         role_updated = await toggle_role(member, role)
         if role_updated:
-            await interaction.response.send_message(f"Rola {role.name} została zaktualizowana.", ephemeral=True)
+            await interaction.followup.send(f"Rola {role.name} została zaktualizowana.", ephemeral=True)
         else:
             log = Logs(
                 category=Channels.LOGS_TECHNICAL,
@@ -56,7 +57,7 @@ class RoleSelect(Select):
             )
             await log.send_log(interaction.client)
 
-            await interaction.response.send_message(f"Nie udało się zaktualizować roli {role.name}", ephemeral=True)
+            await interaction.followup.send(f"Nie udało się zaktualizować roli {role.name}", ephemeral=True)
 
 
 class RolePersistentView(View):

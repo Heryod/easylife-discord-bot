@@ -31,6 +31,7 @@ async def load_cogs():
             logger.info(f"loaded cog: {cog_name}")
         except Exception as e:
             logger.error(f"failed to load {cog_name}: {e}")
+            raise
 
 
 async def main():

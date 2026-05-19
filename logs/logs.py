@@ -66,7 +66,5 @@ class Logs:
             await channel.send(embed=log_embed)
             self._send_console_log()
         else:
-            await log_error(
-                f"Failed to send log message to channel ID {self.channel_id} - channel not found or not messageable",
-                bot,
-            )
+            logger.error(f"Failed to send log message to channel ID {self.channel_id} - channel not found or not messageable")
+            self._send_console_log()
