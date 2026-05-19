@@ -42,7 +42,7 @@ async def run_sync():
         await load_cogs()
         await bot.start(token)
         if bot.sync_error is not None:
-            raise RuntimeError(f"Command synchronization failed: {bot.sync_error}") from bot.sync_error
+            raise RuntimeError(f"Command synchronization failed: {str(bot.sync_error)}") from bot.sync_error
 
 
 if __name__ == "__main__":
