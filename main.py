@@ -12,31 +12,36 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="/", intents=intents)
 
+
 @bot.event
 async def on_ready():
-    logger.info(f'{bot.user} has logged in')
-    
-    await bot.tree.sync()
-    logger.info('commands synced')
+    logger.info(f"{bot.user} has logged in")
+
 
 async def load_cogs():
     """Loads all cogs from the cogs directory."""
 
-    cogs_path = Path('cogs')
-    for cog_file in cogs_path.glob('*.py'):
-        if cog_file.name.startswith('_'):
+    cogs_path = Path("cogs")
+    for cog_file in cogs_path.glob("*.py"):
+        if cog_file.name.startswith("_"):
             continue
-        cog_name = f'cogs.{cog_file.stem}'
+        cog_name = f"cogs.{cog_file.stem}"
         try:
             await bot.load_extension(cog_name)
-            logger.info(f'loaded cog: {cog_name}')
+            logger.info(f"loaded cog: {cog_name}")
         except Exception as e:
-            logger.error(f'failed to load {cog_name}: {e}')
+            logger.error(f"failed to load {cog_name}: {e}")
+
 
 async def main():
+    token = TOKEN if isinstance(TOKEN, str) else None
+    if token is None or not token.strip():
+        raise RuntimeError("TOKEN is not set. Configure config.config.TOKEN before starting the bot.")
+
     async with bot:
         await load_cogs()
-        await bot.start(str(TOKEN))
+        await bot.start(token)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())
