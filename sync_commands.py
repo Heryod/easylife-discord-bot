@@ -26,7 +26,6 @@ async def on_ready():
             color=LogsColor.RED,
         )
         await log.send_log(bot)
-        raise
     finally:
         logger.info("Closing the synchronization bot...")
         await bot.close()
@@ -42,8 +41,9 @@ async def run_sync():
         logger.info("Loading cogs before synchronization...")
         await load_cogs()
         await bot.start(token)
-    if bot.sync_error is not None:
-        raise RuntimeError(f"Command synchronization failed: {bot.sync_error}") from bot.sync_error
+    sync_error = getattr(bot, "sync_error", None)
+    if sync_error is not None:
+        raise RuntimeError(f"Command synchronization failed: {sync_error}") from sync_error
 
 
 if __name__ == "__main__":

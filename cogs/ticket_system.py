@@ -102,11 +102,11 @@ class ConfirmCloseView(View):
             await interaction.response.send_message("Nie można użyć tej komendy tutaj.", ephemeral=True)
             return
 
+        await interaction.response.defer(ephemeral=True)
         if not await Permissions.is_staff(interaction.guild, interaction.user.id):
-            await interaction.response.send_message("Nie masz uprawnień do potwierdzenia zamknięcia tego ticketu.", ephemeral=True)
+            await interaction.followup.send("Nie masz uprawnień do potwierdzenia zamknięcia tego ticketu.", ephemeral=True)
             return
 
-        await interaction.response.defer(ephemeral=True)
         try:
             ticket_data = get_ticket(interaction.channel.id)
             if ticket_data:
