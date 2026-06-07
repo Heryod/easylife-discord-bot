@@ -1,5 +1,6 @@
 import json
 import os
+import asyncio
 from typing import Optional
 import discord
 from discord import app_commands
@@ -14,7 +15,6 @@ def _write_status(value: str) -> None:
     with open(Files.STATUS_FILE, "w") as f:
         json.dump({"status": value}, f, indent=4)
 
-
 class Status(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -23,10 +23,7 @@ class Status(commands.Cog):
         name="status",
         description="Ustaw status bota",
     )
-    @app_commands.describe(
-        tekst="Opcjonalnie: własny tekst statusu. Bez parametru - pokaże liczbę graczy online.",
-    )
-    async def set_status(
+    async def set_status(self, interaction: discord.Interaction, tekst: Optional[str] = None):
         self,
         interaction: discord.Interaction,
         tekst: Optional[str] = None,
@@ -48,14 +45,13 @@ class Status(commands.Cog):
             display = "liczba graczy online"
 
         try:
-            _write_status(new_status)
+            await asyncio.to_thread(_write_status, new_status)
         except Exception as e:
             logger.error(f"Failed to write status file: {e}")
             await interaction.response.send_message("Nie udało się zapisać statusu.", ephemeral=True)
             return
 
         logger.info(f"Status set to '{new_status}' by {interaction.user}")
-
         await interaction.response.send_message(f"Status bota ustawiony na: {display}", ephemeral=True)
 
 
