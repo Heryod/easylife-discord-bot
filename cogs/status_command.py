@@ -15,6 +15,7 @@ def _write_status(value: str) -> None:
     with open(Files.STATUS_FILE, "w") as f:
         json.dump({"status": value}, f, indent=4)
 
+
 class Status(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -24,10 +25,6 @@ class Status(commands.Cog):
         description="Ustaw status bota",
     )
     async def set_status(self, interaction: discord.Interaction, tekst: Optional[str] = None):
-        self,
-        interaction: discord.Interaction,
-        tekst: Optional[str] = None,
-    ):
         guild = interaction.guild
         if not guild:
             await interaction.response.send_message("Nie można użyć tej komendy tutaj.", ephemeral=True)

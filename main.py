@@ -11,11 +11,11 @@ class CustomBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sync_error: Exception | None = None
-        self._last_status = None 
+        self._last_status = None
 
     async def setup_hook(self):
         await load_cogs(self)
-        
+
         self.status_loop.start()
 
     @tasks.loop(seconds=60)
@@ -29,6 +29,7 @@ class CustomBot(commands.Bot):
                 self._last_status = current_status
         except Exception as e:
             logger.error(f"status_loop error: {e}")
+            raise
 
     @status_loop.before_loop
     async def before_status_loop(self):
