@@ -6,13 +6,12 @@ from discord import app_commands
 from discord.ext import commands
 from loguru import logger
 from config import Permissions
-
-STATUS_FILE = "data/status.json"
+from config import Files
 
 
 def _write_status(value: str) -> None:
-    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
-    with open(STATUS_FILE, "w") as f:
+    os.makedirs(os.path.dirname(Files.STATUS_FILE), exist_ok=True)
+    with open(Files.STATUS_FILE, "w") as f:
         json.dump({"status": value}, f, indent=4)
 
 

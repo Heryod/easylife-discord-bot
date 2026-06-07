@@ -9,6 +9,7 @@ from utils.helpers import add_role, remove_role
 from utils.role_file_handler import remove_expired_roles, save_role, remove_role as remove_role_from_file, get_role, get_user_roles
 from logs import Logs
 from loguru import logger
+import re
 
 
 class AdminRoles(commands.Cog):
@@ -97,7 +98,8 @@ class AdminRoles(commands.Cog):
 
         expiration_info = ""
         if expiration_time:
-            expiration_info = f"\n**Do kiedy:** {expiration_time}"
+            dt = datetime.fromisoformat(expiration_time)
+            expiration_info = f"\n**Do kiedy:** {dt.strftime('%d.%m.%Y %H:%M')}"
 
         log_message = (
             f"Rola **{role_name}** nadana\n"
@@ -203,8 +205,6 @@ class AdminRoles(commands.Cog):
     def _parse_time(self, time_str: str) -> Optional[str]:
         try:
             time_str = time_str.lower().strip()
-
-            import re
 
             match = re.match(r"^(\d+)([dhm])$", time_str)
             if not match:

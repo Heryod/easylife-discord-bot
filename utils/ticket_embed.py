@@ -1,4 +1,5 @@
 from discord import Embed, SelectOption
+from datetime import datetime
 import discord
 
 
@@ -94,8 +95,6 @@ def create_doj_welcome_embed() -> discord.Embed:
 
 
 def create_closed_embed(channel_id: int, user_id: int, users_str: str) -> discord.Embed:
-    from datetime import datetime
-
     embed = discord.Embed(
         title="Zamknięto ticket",
         description=f"Ticket <#{channel_id}> ID: **{channel_id}** został zamknięty przez użytkownika: <@{user_id}>\nZabrano dostęp do kanału użytkownikom:\n\n {users_str}",

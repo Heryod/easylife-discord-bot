@@ -1,5 +1,5 @@
 from .config import TOKEN
-from .constants import Users, Roles, Channels, Categories, CommandRoles, Permissions, LogsColor
+from .constants import Users, Roles, Channels, Categories, CommandRoles, Permissions, LogsColor, Files
 
 __all__ = [
     "TOKEN",
@@ -10,4 +10,5 @@ __all__ = [
     "CommandRoles",
     "Permissions",
     "LogsColor",
+    "Files",
 ]

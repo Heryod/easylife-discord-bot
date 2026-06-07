@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 import discord
 from discord import Guild
 
@@ -44,6 +44,10 @@ class LogsColor(IntEnum):
     YELLOW = 0xDFC207
     NEUTRAL = 0xFFFFFF
     RED = 0xFF0000
+
+
+class Files(StrEnum):
+    STATUS_FILE = "data/status.json"
 
 
 class Permissions:

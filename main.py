@@ -1,21 +1,28 @@
-import discord
-from discord.ext import commands
 import asyncio
 from pathlib import Path
-from cogs.admin_roles import handle_expired_roles
-from config.config import TOKEN
-from config import Channels, LogsColor
+import discord
+from discord.ext import commands
 from loguru import logger
+
 from cogs import handle_expired_roles
+from config import Channels, LogsColor
+from config.config import TOKEN
 from logs import Logs
-from utils import load_cogs, get_status
+from utils import get_status, load_cogs
+
+
+class CustomBot(commands.Bot):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sync_error: Exception | None = None
+
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
 intents.members = True
-
-bot = commands.Bot(command_prefix="/", intents=intents)
+bot = CustomBot(command_prefix="/", intents=intents)
 
 
 async def status_loop():
