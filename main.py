@@ -1,47 +1,61 @@
-import discord
-from discord.ext import commands
 import asyncio
-from pathlib import Path
-from config.config import TOKEN
+import discord
+from discord.ext import commands, tasks
 from loguru import logger
+from cogs import handle_expired_roles
+from config.config import TOKEN
+from utils import get_status, load_cogs
+
+
+class CustomBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sync_error: Exception | None = None
+        self._last_status = None
+
+    async def setup_hook(self):
+        await load_cogs(self)
+
+        self.status_loop.start()
+
+    @tasks.loop(seconds=60)
+    async def status_loop(self):
+        try:
+            current_status = await asyncio.to_thread(get_status)
+
+            if current_status != self._last_status:
+                await self.change_presence(activity=discord.Game(name=current_status))
+                logger.info(f"Status changed: {self._last_status!r} → {current_status!r}")
+                self._last_status = current_status
+        except Exception as e:
+            logger.error(f"status_loop error: {e}")
+            raise
+
+    @status_loop.before_loop
+    async def before_status_loop(self):
+        await self.wait_until_ready()
+
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
 intents.members = True
 
-bot = commands.Bot(command_prefix="/", intents=intents)
-bot.sync_error = None
+bot = CustomBot(command_prefix="/", intents=intents)
 
 
 @bot.event
 async def on_ready():
     logger.info(f"{bot.user} has logged in")
-
-
-async def load_cogs():
-    """Loads all cogs from the cogs directory."""
-
-    cogs_path = Path("cogs")
-    for cog_file in cogs_path.glob("*.py"):
-        if cog_file.name.startswith("_"):
-            continue
-        cog_name = f"cogs.{cog_file.stem}"
-        try:
-            await bot.load_extension(cog_name)
-            logger.info(f"loaded cog: {cog_name}")
-        except Exception as e:
-            logger.error(f"failed to load {cog_name}: {e}")
-            raise
+    await handle_expired_roles(bot)
 
 
 async def main():
     token = TOKEN if isinstance(TOKEN, str) else None
     if token is None or not token.strip():
-        raise RuntimeError("TOKEN is not set. Configure config.config.TOKEN before starting the bot.")
+        raise RuntimeError("TOKEN is not set")
 
     async with bot:
-        await load_cogs()
         await bot.start(token)
 
 

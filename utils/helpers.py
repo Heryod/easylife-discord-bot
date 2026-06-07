@@ -1,3 +1,4 @@
+from pathlib import Path
 import discord
 from loguru import logger
 import sys
@@ -70,3 +71,18 @@ async def toggle_role(member: discord.User | discord.Member, role: discord.Role)
     except Exception as e:
         logger.error(f"Error while toggling role {role.name}: {e}")
         return False
+
+
+async def load_cogs(bot):
+    """Loads all cogs from the cogs directory."""
+
+    cogs_path = Path("cogs")
+    for cog_file in cogs_path.glob("*.py"):
+        if cog_file.name.startswith("_"):
+            continue
+        cog_name = f"cogs.{cog_file.stem}"
+        try:
+            await bot.load_extension(cog_name)
+            logger.info(f"loaded cog: {cog_name}")
+        except Exception as e:
+            logger.error(f"failed to load {cog_name}: {e}")

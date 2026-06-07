@@ -1,8 +1,9 @@
-from discord import Embed, SelectOption
+from discord import Embed
+from datetime import datetime
 import discord
 
 
-def create_ticket_embed() -> tuple[Embed, list[SelectOption]]:
+def create_ticket_embed() -> tuple[Embed, list[dict]]:
     """
     Creates an embed for the ticket channel with relevant information.
     """
@@ -26,24 +27,78 @@ def create_ticket_embed() -> tuple[Embed, list[SelectOption]]:
     )
 
     options = [
-        SelectOption(
-            label="Zgłoś gracza",
-            value="report_player",
-            emoji="📫",
-            description="Chcę zgłosić innego gracza",
-        ),
-        SelectOption(
-            label="Znalazłem błąd",
-            value="technical_issue",
-            emoji="🛠️",
-            description="Chciałbym zgłosić błąd na serwerze",
-        ),
-        SelectOption(
-            label="Inne",
-            value="other",
-            emoji="❔",
-            description="Mam inną sprawę do administracji",
-        ),
+        {
+            "label": "Zgłoś gracza",
+            "value": "report_player",
+            "emoji": "📫",
+            "style": discord.ButtonStyle.primary,
+        },
+        {
+            "label": "Znalazłem błąd",
+            "value": "technical_issue",
+            "emoji": "🛠️",
+            "style": discord.ButtonStyle.danger,
+        },
+        {
+            "label": "Mam inną sprawę",
+            "value": "other",
+            "emoji": "❔",
+            "style": discord.ButtonStyle.secondary,
+        },
     ]
 
     return embed, options
+
+
+def create_doj_ticket_embed() -> tuple[discord.Embed, list[dict]]:
+    """
+    Creates an embed for the DOJ ticket channel.
+    """
+    embed = discord.Embed(
+        title="Zgłoszenie do Departamentu Sprawiedliwości",
+        description="Tickety to forma zgłoszeń do Departamentu Sprawiedliwości **(IC)**.\n\nOtwórz ticket, jeśli chcesz zgłosić sprawę do Sądu lub masz pytanie związane z jego działaniem.",
+        color=0xD78207,
+    )
+
+    embed.set_author(name="DOJ - TicketSystem")
+
+    options = [
+        {
+            "label": "Otwórz Ticket",
+            "value": "doj",
+            "emoji": "🗄️",
+            "style": discord.ButtonStyle.secondary,
+        }
+    ]
+
+    return embed, options
+
+
+def create_welcome_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="Ticket",
+        description="Dziekujemy za skontaktowanie się z administracją!\nPamiętaj aby przestrzegać regulamin ticketów który znajdziesz na kanale <#1199881479153528872>",
+        color=6997023,
+    )
+    embed.set_author(name="EasyLife - Ticket System")
+    return embed
+
+
+def create_doj_welcome_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="Ticket",
+        description="Witamy w oficjalnej drodze komunikacji z Departamentem Sprawiedliwości.\n\nTutaj możesz zgłosić sprawę do Sądu lub zadać nam pytanie.",
+        color=0x4DDC18,
+    )
+    embed.set_author(name="Departament Sprawiedliwości - Ticket")
+    return embed
+
+
+def create_closed_embed(channel_id: int, user_id: int, users_str: str) -> discord.Embed:
+    embed = discord.Embed(
+        title="Zamknięto ticket",
+        description=f"Ticket <#{channel_id}> ID: **{channel_id}** został zamknięty przez użytkownika: <@{user_id}>\nZabrano dostęp do kanału użytkownikom:\n\n {users_str}",
+        color=0xFC0F00,
+    )
+    embed.timestamp = datetime.now()
+    return embed
