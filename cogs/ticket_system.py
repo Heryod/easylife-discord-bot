@@ -1,95 +1,30 @@
 import discord
 from typing import Optional, Union, List
-import json
-import os
 from datetime import datetime
 from discord.ext import commands
 from discord import app_commands
 from discord.ui import View, Select, Button, Modal, TextInput
-from config import Permissions, Roles, Users, Channels, LogsColor
-from utils.ticket_embed import create_ticket_embed
-from logs import Logs, log_error
-
-TICKETS_FILE = "data/tickets.json"
-
-
-def save_ticket(ticket_data):
-    if not os.path.exists(TICKETS_FILE):
-        os.makedirs(os.path.dirname(TICKETS_FILE), exist_ok=True)
-        with open(TICKETS_FILE, "w") as f:
-            json.dump([], f)
-
-    with open(TICKETS_FILE, "r") as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError:
-            data = []
-
-    data.append(ticket_data)
-
-    with open(TICKETS_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+from config import Permissions, Roles, Users, Channels, Categories, LogsColor
+from utils.ticket_embed import create_ticket_embed, create_doj_ticket_embed, create_welcome_embed, create_closed_embed, create_doj_welcome_embed
+from utils.ticket_file_handler import save_ticket, delete_ticket, get_ticket, get_user_ticket_count
+from logs import Logs
 
 
-def delete_ticket(ticket_id: int):
-    if not os.path.exists(TICKETS_FILE):
-        return
+async def can_manage_ticket(guild: discord.Guild, user_id: int, ticket_category: Optional[str]) -> bool:
+    if await Permissions.is_staff(guild, user_id):
+        return True
 
-    with open(TICKETS_FILE, "r") as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError:
-            return
+    if ticket_category == "doj":
+        member = guild.get_member(user_id)
+        if not member:
+            try:
+                member = await guild.fetch_member(user_id)
+            except discord.HTTPException:
+                return False
 
-    data = [t for t in data if t.get("ticket_id") != ticket_id]
+        return any(r.id == Roles.DOJ for r in member.roles)
 
-    with open(TICKETS_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
-
-def get_ticket(ticket_id: int):
-    if not os.path.exists(TICKETS_FILE):
-        return None
-    with open(TICKETS_FILE, "r") as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError:
-            return None
-    for t in data:
-        if t.get("ticket_id") == ticket_id:
-            return t
-    return None
-
-
-def get_user_ticket_count(user_id: int) -> int:
-    if not os.path.exists(TICKETS_FILE):
-        return 0
-    with open(TICKETS_FILE, "r") as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError:
-            return 0
-    return sum(1 for t in data if t.get("creator_id") == user_id)
-
-
-def create_welcome_embed() -> discord.Embed:
-    embed = discord.Embed(
-        title="Ticket",
-        description="Dziekujemy za skontaktowanie się z administracją!\nPamiętaj aby przestrzegać regulamin ticketów który znajdziesz na kanale <#1199881479153528872>",
-        color=6997023,
-    )
-    embed.set_author(name="EasyLife - Ticket System")
-    return embed
-
-
-def create_closed_embed(channel_id: int, user_id: int, users_str: str) -> discord.Embed:
-    embed = discord.Embed(
-        title="Zamknięto ticket",
-        description=f"Ticket <#{channel_id}> ID: **{channel_id}** został zamknięty przez użytkownika: <@{user_id}>\nZabrano dostęp do kanału użytkownikom:\n\n {users_str}",
-        color=0xFC0F00,
-    )
-    embed.timestamp = datetime.now()
-    return embed
+    return False
 
 
 class ConfirmCloseView(View):
@@ -102,13 +37,14 @@ class ConfirmCloseView(View):
             await interaction.response.send_message("Nie można użyć tej komendy tutaj.", ephemeral=True)
             return
 
-        await interaction.response.defer(ephemeral=True)
-        if not await Permissions.is_staff(interaction.guild, interaction.user.id):
-            await interaction.followup.send("Nie masz uprawnień do potwierdzenia zamknięcia tego ticketu.", ephemeral=True)
+        ticket_data = get_ticket(interaction.channel.id)
+        ticket_category = ticket_data.get("category") if ticket_data else None
+
+        if not await can_manage_ticket(interaction.guild, interaction.user.id, ticket_category):
+            await interaction.response.send_message("Nie masz uprawnień do potwierdzenia zamknięcia tego ticketu.", ephemeral=True)
             return
 
         try:
-            ticket_data = get_ticket(interaction.channel.id)
             if ticket_data:
                 creator_id = ticket_data.get("creator_id")
                 created_at = ticket_data.get("created_at")
@@ -144,7 +80,13 @@ class TicketControlsView(View):
 
     @discord.ui.button(label="Zamknij ticket z powodem", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="close_ticket_with_reason")
     async def close_ticket_with_reason(self, interaction: discord.Interaction, button: Button):
-        if not await Permissions.is_staff(interaction.guild, interaction.user.id):
+        if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel):
+            return
+
+        ticket_data = get_ticket(interaction.channel.id)
+        ticket_category = ticket_data.get("category") if ticket_data else None
+
+        if not await can_manage_ticket(interaction.guild, interaction.user.id, ticket_category):
             await interaction.response.send_message("Nie masz uprawnień do zamknięcia z powodem.", ephemeral=True)
             return
 
@@ -164,13 +106,13 @@ async def handle_close_ticket(interaction: discord.Interaction, reason: Optional
 
     ticket_data = get_ticket(channel.id)
     creator_id = ticket_data.get("creator_id") if ticket_data else None
+    ticket_category = ticket_data.get("category") if ticket_data else None
 
     users_removed = []
 
     for target, override in getattr(channel, "overwrites", {}).items():
         if isinstance(target, discord.Member):
-            is_staff = await Permissions.is_staff(guild, target.id)
-            if not is_staff:
+            if not await can_manage_ticket(guild, target.id, ticket_category):
                 await channel.set_permissions(target, overwrite=None)
                 users_removed.append(f"<@{target.id}>")
 
@@ -183,9 +125,12 @@ async def handle_close_ticket(interaction: discord.Interaction, reason: Optional
 
     if reason and creator_id:
         creator = guild.get_member(creator_id)
+        is_doj_ticket = ticket_data.get("category") == "doj" if ticket_data else False
+        closer_role_name = "członka Departamentu Sprawiedliwości" if is_doj_ticket else "administratora"
+
         if creator:
             try:
-                await creator.send(f"Twój ticket został zamknięty przez administratora: **{interaction.user.name}** z powodem: {reason}")
+                await creator.send(f"Twój ticket został zamknięty przez {closer_role_name}: **{interaction.user.name}** z powodem: {reason}")
             except discord.Forbidden:
                 dm_log = Logs(
                     category=Channels.LOGS_TICKET,
@@ -261,21 +206,37 @@ class Ticket:
             overwrites[heryod] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             self.allowed_users.append(heryod)
 
-        _, options = create_ticket_embed()
+        if self.category == "doj":
+            doj_role = guild.get_role(Roles.DOJ)
+            if doj_role:
+                overwrites[doj_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                self.allowed_users.append(doj_role)
+            doj_category = guild.get_channel(Categories.DOJ_TICKETS)
+            if doj_category and isinstance(doj_category, discord.CategoryChannel):
+                category_channel = doj_category
+
+        _, standard_options = create_ticket_embed()
+        _, doj_options = create_doj_ticket_embed()
+        all_options = standard_options + doj_options
+
         emoji = "🎫"
-        for opt in options:
-            if opt.value == self.category:
-                emoji = str(opt.emoji) if opt.emoji else "🎫"
+        for opt in all_options:
+            if opt["value"] == self.category:
+                emoji = str(opt["emoji"]) if opt.get("emoji") else "🎫"
                 break
 
-        category_mappings = {"other": "inne", "report_player": "zgloszenie", "technical_issue": "blad"}
+        category_mappings = {"other": "inne", "report_player": "zgloszenie", "technical_issue": "blad", "doj": "doj"}
         mapped_category = category_mappings.get(self.category, self.category)
 
         channel_name = f"{emoji}-{mapped_category}-{self.author.name}"
 
         ticket_channel = await guild.create_text_channel(name=channel_name, category=category_channel, overwrites=overwrites)
 
-        welcome_embed = create_welcome_embed()
+        if self.category == "doj":
+            welcome_embed = create_doj_welcome_embed()
+        else:
+            welcome_embed = create_welcome_embed()
+
         controls_view = TicketControlsView()
         await ticket_channel.send(content=f"{self.author.mention}", embed=welcome_embed, view=controls_view)
 
@@ -298,25 +259,20 @@ class Ticket:
         return ticket_channel
 
 
-class TicketSelect(Select):
-    """Persistent select menu for ticket creation"""
+class TicketButton(discord.ui.Button):
+    """Button for ticket creation"""
 
-    def __init__(self, options, cog):
-        super().__init__(
-            placeholder="Wybierz kategorię ticketu",
-            options=options,
-            custom_id="ticket_select",
-        )
+    def __init__(self, label: str, custom_id: str, emoji: str, style: discord.ButtonStyle, cog):
+        super().__init__(label=label, custom_id=f"ticket_{custom_id}", emoji=emoji, style=style)
         self.cog = cog
+        self.category_value = custom_id
 
     async def callback(self, interaction: discord.Interaction):
-        """handler for user selection - creates a ticket"""
+        """handler for user click - creates a ticket"""
         if not interaction.guild:
             await interaction.response.defer()
             return
 
-        await interaction.response.defer(ephemeral=True)
-        selected_value = self.values[0]
         member = interaction.user
 
         if get_user_ticket_count(member.id) >= 5:
@@ -331,14 +287,14 @@ class TicketSelect(Select):
 
         ticket = Ticket(
             author=member,
-            category=selected_value,
+            category=self.category_value,
             channel_id=interaction.channel_id,
             guild_id=interaction.guild.id,
         )
         ticket_channel = await ticket.create_ticket(interaction)
 
         if ticket_channel:
-            await interaction.followup.send(f"Twój ticket w kategorii {selected_value} został utworzony: {ticket_channel.mention}", ephemeral=True)
+            await interaction.response.send_message(f"Twój ticket w kategorii {self.category_value} został utworzony: {ticket_channel.mention}", ephemeral=True)
         else:
             await interaction.followup.send("Nie udało się utworzyć ticketu. Brak dostępu do serwera.", ephemeral=True)
 
@@ -348,14 +304,19 @@ class TicketPersistentView(View):
 
     def __init__(self, options, cog):
         super().__init__(timeout=None)
-        self.add_item(TicketSelect(options, cog))
+        for opt in options:
+            self.add_item(TicketButton(label=opt["label"], custom_id=opt["value"], emoji=opt["emoji"], style=opt["style"], cog=cog))
 
 
 class TicketCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        embed, self.ticket_options = create_ticket_embed()
+        _, self.ticket_options = create_ticket_embed()
+        _, self.doj_options = create_doj_ticket_embed()
+
         self.bot.add_view(TicketPersistentView(self.ticket_options, self))
+        self.bot.add_view(TicketPersistentView(self.doj_options, self))
+
         self.bot.add_view(TicketControlsView())
         self.bot.add_view(ConfirmCloseView())
 
@@ -370,6 +331,49 @@ class TicketCog(commands.Cog):
         embed, options = create_ticket_embed()
         view = TicketPersistentView(options, self)
         await interaction.response.send_message(embed=embed, view=view)
+
+    @app_commands.command(name="ticket-doj-panel", description="Wysyła panel systemu ticketów DOJ")
+    async def ticketDojPanel(self, interaction: discord.Interaction):
+        """Slash command that sends the DOJ ticket system panel"""
+
+        if not Permissions.is_high_admin(interaction.user.id):
+            await interaction.response.send_message("Nie masz uprawnień do użycia tej komendy.", ephemeral=True)
+            return
+
+        embed, options = create_doj_ticket_embed()
+        view = TicketPersistentView(options, self)
+        await interaction.response.send_message(embed=embed, view=view)
+
+    @app_commands.command(name="dodaj", description="Dodaje użytkownika do obecnego ticketu")
+    @app_commands.describe(user="Użytkownik do dodania")
+    async def add_user_to_ticket(self, interaction: discord.Interaction, user: discord.Member):
+        """Slash command that adds a user to the current ticket"""
+        if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("Tej komendy można użyć tylko na kanale.", ephemeral=True)
+            return
+
+        ticket_data = get_ticket(interaction.channel.id)
+        if not ticket_data:
+            await interaction.response.send_message("Ta komenda może być użyta tylko na kanale ticketu.", ephemeral=True)
+            return
+
+        ticket_category = ticket_data.get("category")
+        is_creator = ticket_data.get("creator_id") == interaction.user.id
+        is_manager = await can_manage_ticket(interaction.guild, interaction.user.id, ticket_category)
+
+        if not (is_creator or is_manager):
+            await interaction.response.send_message("Nie masz uprawnień, aby dodawać osoby do tego ticketu.", ephemeral=True)
+            return
+
+        await interaction.channel.set_permissions(user, read_messages=True, send_messages=True)
+        await interaction.response.send_message(f"Pomyślnie dodano użytkownika {user.mention} do ticketu.")
+
+        log = Logs(
+            category=Channels.LOGS_TICKET,
+            message=f"Użytkownik <@{interaction.user.id}> dodał <@{user.id}> do ticketu <#{interaction.channel.id}> (Kategoria: {ticket_category})",
+            color=LogsColor.BLUE,
+        )
+        await log.send_log(interaction.client)
 
 
 async def setup(bot: commands.Bot):

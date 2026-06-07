@@ -12,6 +12,7 @@ class Roles(IntEnum):
     ADMIN = 1112837003185225848
     MEMBER = 1349467306144825415
     BOT = 1126619740316647484
+    DOJ = 1212071078587797524
 
 
 class Channels(IntEnum):
@@ -28,6 +29,7 @@ class Channels(IntEnum):
 
 class Categories(IntEnum):
     TICKETS = 1505947481144430803
+    DOJ_TICKETS = 1513159483159744562
 
 
 class CommandRoles(IntEnum):
