@@ -22,7 +22,7 @@ async def can_manage_ticket(guild: discord.Guild, user_id: int, ticket_category:
             except discord.HTTPException:
                 return False
 
-        return any(r.id == Roles.DOJ for r in member.roles)
+        return member.get_role(Roles.DOJ) is not None
 
     return False
 
