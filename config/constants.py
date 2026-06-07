@@ -46,7 +46,7 @@ class LogsColor(IntEnum):
     RED = 0xFF0000
 
 
-class Files(StrEnum):
+class Files:
     STATUS_FILE = "data/status.json"
 
 

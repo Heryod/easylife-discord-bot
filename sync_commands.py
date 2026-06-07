@@ -35,7 +35,7 @@ async def run_sync():
     bot.sync_error = None
     token = TOKEN if isinstance(TOKEN, str) else None
     if token is None or not token.strip():
-        raise RuntimeError("TOKEN is not set. Configure config.config.TOKEN before starting" " the bot.")
+        raise RuntimeError("TOKEN is not set")
 
     async with bot:
         logger.info("Loading cogs before synchronization...")

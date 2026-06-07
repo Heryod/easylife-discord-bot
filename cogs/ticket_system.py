@@ -273,6 +273,8 @@ class TicketButton(discord.ui.Button):
             await interaction.response.defer()
             return
 
+        await interaction.response.defer(ephemeral=True)
+
         member = interaction.user
 
         if get_user_ticket_count(member.id) >= 5:
@@ -294,7 +296,6 @@ class TicketButton(discord.ui.Button):
         ticket_channel = await ticket.create_ticket(interaction)
 
         if ticket_channel:
-            await interaction.response.defer()
             await interaction.followup.send(f"Twój ticket w kategorii {self.category_value} został utworzony: {ticket_channel.mention}", ephemeral=True)
         else:
             await interaction.followup.send("Nie udało się utworzyć ticketu. Brak dostępu do serwera.", ephemeral=True)

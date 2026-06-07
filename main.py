@@ -1,13 +1,10 @@
 import asyncio
-from pathlib import Path
 import discord
 from discord.ext import commands
 from loguru import logger
-
 from cogs import handle_expired_roles
 from config import Channels, LogsColor
 from config.config import TOKEN
-from logs import Logs
 from utils import get_status, load_cogs
 
 

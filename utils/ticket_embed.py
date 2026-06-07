@@ -1,4 +1,4 @@
-from discord import Embed, SelectOption
+from discord import Embed
 from datetime import datetime
 import discord
 
