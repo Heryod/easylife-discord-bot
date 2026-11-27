@@ -21,7 +21,7 @@ async def can_manage_ticket(guild: discord.Guild, user_id: int, ticket_category:
                 member = await guild.fetch_member(user_id)
             except discord.HTTPException:
                 return False
-
+            # Check if the member has the DOJ role
         return member.get_role(Roles.DOJ) is not None
 
     return False
