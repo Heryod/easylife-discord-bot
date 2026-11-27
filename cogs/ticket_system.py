@@ -25,6 +25,7 @@ async def can_manage_ticket(guild: discord.Guild, user_id: int, ticket_category:
         return member.get_role(Roles.DOJ) is not None
 
     return False
+    
 
 
 class ConfirmCloseView(View):
